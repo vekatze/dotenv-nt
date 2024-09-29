@@ -1,0 +1,22 @@
+{
+  target {
+    test {
+      main "test.nt",
+    },
+  },
+  dependency {
+    core {
+      digest "PGhaZV-V70nIkSoy6_ChY6w_5G-1csAydPCTgfQb0Ig",
+      mirror [
+        "https://github.com/vekatze/neut-core/raw/main/archive/0-50-24.tar.zst",
+      ],
+      enable-preset true,
+    },
+    path {
+      digest "peY0iqQxjjyNA0rkgZLhEjBCJgtA8ouwKU0dUhihtuk",
+      mirror [
+        "https://github.com/vekatze/path-nt/raw/main/archive/0-1-7.tar.zst",
+      ],
+    },
+  },
+}

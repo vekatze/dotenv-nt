@@ -1,0 +1,20 @@
+import {
+  core.environment {get-env},
+  this.scene {find-and-load-env-file},
+}
+
+define try-dotenv(): ?unit {
+  try _ = find-and-load-env-file(".env") in
+  try value = get-env("BUZ") in
+  printf("result: {}\n", [value]);
+  Right(Unit)
+}
+
+define zen(): unit {
+  let _ = try-dotenv() in
+  Unit
+}
+
+define main(): unit {
+  zen()
+}
