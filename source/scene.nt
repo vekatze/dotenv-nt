@@ -1,6 +1,7 @@
 import {
   core.environment {set-env},
   core.errno {system},
+  core.file {close, open},
   core.file.flag {for-r},
   core.file.mode {default-file-mode},
   core.rune,
@@ -13,6 +14,7 @@ import {
     take-while-N,
     text-byte-length,
   },
+  core.text.io {read},
   core.text.parse {error, parse-text},
   path.entity.dirent {Dirent, dirent},
   path.entity.dtype {DT_REG, dtype},
@@ -115,6 +117,7 @@ define _read-env(env-text: text): either(error, unit) {
 define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
   try file = open(path, for-r, default-file-mode) in
   try content = read(file, initial-buffer-size) in
+  try _ = close(file) in
   let _ = _read-env(content) in
   Right(Unit)
 }
@@ -164,8 +167,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
   }
 }
 
-define _find-env-file(cursor-directory: text, env-file-name: &text): ?text {
-  pin cursor-directory = cursor-directory in
+define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
   try items = _from-system(read-directory(cursor-directory)) in
   pin items = items in
   match _find-env-dirent(items, env-file-name) {
@@ -174,8 +176,8 @@ define _find-env-file(cursor-directory: text, env-file-name: &text): ?text {
     let env-file-path = path.path.append(cursor-directory, name) in
     Right(env-file-path)
   | Left(_) =>
-    let next-cursor = drop-last(cursor-directory) in
-    let should-finish on next-cursor = eq-text(next-cursor, cursor-directory) in
+    pin next-cursor = drop-last(cursor-directory) in
+    let should-finish = eq-text(next-cursor, cursor-directory) in
     if should-finish {
       none()
     } else {
@@ -186,6 +188,7 @@ define _find-env-file(cursor-directory: text, env-file-name: &text): ?text {
 
 define find-env-file(env-file-name: &text): ?text {
   try cwd = _from-system(get-current-directory()) in
+  pin cwd = cwd in
   _find-env-file(cwd, env-file-name)
 }
 
