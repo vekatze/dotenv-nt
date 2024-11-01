@@ -5,7 +5,7 @@
 ## Installation
 
 ```sh
-neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0-1-3.tar.zst
+neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0-1-4.tar.zst
 ```
 
 ## Types
