@@ -152,7 +152,7 @@ define _dirent-is-reg(x: &dirent): bool {
 define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
   case xs {
   | Nil =>
-    none()
+    none
   | Cons(dirent, rest) =>
     tie Dirent of {kind, name} = dirent in
     let b1 = _dtype-is-reg(kind) in
@@ -179,7 +179,7 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
     pin next-cursor = drop-last(cursor-directory) in
     let should-finish = eq-text(next-cursor, cursor-directory) in
     if should-finish {
-      none()
+      none
     } else {
       _find-env-file(next-cursor, env-file-name)
     }
