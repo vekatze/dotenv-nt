@@ -83,7 +83,7 @@ inline _read-text-while-rune(haystack: text, needle: rune): pair(text, text) {
   Pair(fragment, rest)
 }
 
-define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
+define _read-quoted-value(value-rest: text): except(error, pair(text, text)) {
   let quoted-value-rest = _drop(value-rest, 1) in
   let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest) in
   let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index) in
@@ -91,14 +91,14 @@ define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
   let quoted-value-length = text-byte-length(quoted-value) in
   try value = parse-text(quoted-value) in
   let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1)) in
-  Right(Pair(value, rest))
+  OK(Pair(value, rest))
 }
 
-define _read-env(env-text: text): either(error, unit) {
+define _read-env(env-text: text): except(error, unit) {
   let env-text = _skip-spaces(env-text) in
   let should-finish on env-text = is-empty(env-text) in
   if should-finish {
-    Right(Unit)
+    OK(Unit)
   } else {
     let Pair(key, value-rest) = _read-text-while-rune(env-text, `=`) in
     let quoted on value-rest = _has-quote-at-head(value-rest) in
@@ -119,15 +119,15 @@ define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
   try content = read(file, initial-buffer-size) in
   try _ = close(file) in
   let _ = _read-env(content) in
-  Right(Unit)
+  OK(Unit)
 }
 
 define _from-system<a>(x: system(a)): ?a {
   match x {
-  | Left(_) =>
-    Left(Unit)
-  | Right(v) =>
-    Right(v)
+  | Error(_) =>
+    Error(Unit)
+  | OK(v) =>
+    OK(v)
   }
 }
 
@@ -158,7 +158,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
     let b1 = _dtype-is-reg(kind) in
     let b2 = eq-text(name, env-file-name) in
     if and(b1, b2) {
-      Right(dirent)
+      OK(dirent)
     } else {
       _find-env-dirent(rest, env-file-name)
     }
@@ -171,11 +171,11 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
   try items = _from-system(read-directory(cursor-directory)) in
   pin items = items in
   match _find-env-dirent(items, env-file-name) {
-  | Right(dirent) =>
+  | OK(dirent) =>
     tie Dirent of {name} = dirent in
     let env-file-path = path.path.append(cursor-directory, name) in
-    Right(env-file-path)
-  | Left(_) =>
+    OK(env-file-path)
+  | Error(_) =>
     pin next-cursor = drop-last(cursor-directory) in
     let should-finish = eq-text(next-cursor, cursor-directory) in
     if should-finish {
