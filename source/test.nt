@@ -7,7 +7,7 @@ define try-dotenv(): ?unit {
   try _ = find-and-load-env-file(".env") in
   try value = get-env("BUZ") in
   printf("result: {}\n", [value]);
-  OK(Unit)
+  Right(Unit)
 }
 
 define zen(): unit {
