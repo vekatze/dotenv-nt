@@ -1,6 +1,6 @@
 import {
   core.environment {set-env},
-  core.errno {system},
+  core.errno {errno, system},
   core.file {close, open},
   core.file.flag {for-r},
   core.file.mode {default-file-mode},
@@ -15,7 +15,7 @@ import {
     text-byte-length,
   },
   core.text.io {read},
-  core.text.parse {error, parse-text},
+  core.text.parse {parse-text},
   path.entity.dirent {Dirent, dirent},
   path.entity.dtype {DT_REG, dtype},
   path.io {get-current-directory, read-directory},
@@ -83,15 +83,33 @@ inline _read-text-while-rune(haystack: text, needle: rune): pair(text, text) {
   Pair(fragment, rest)
 }
 
+data error {
+| Parse-Error(core.text.parse.error)
+| System-Error(errno)
+}
+
 define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
   let quoted-value-rest = _drop(value-rest, 1) in
   let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest) in
   let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index) in
   pin quoted-value = quoted-value in
   let quoted-value-length = text-byte-length(quoted-value) in
-  try value = parse-text(quoted-value) in
-  let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1)) in
-  Right(Pair(value, rest))
+  match parse-text(quoted-value) {
+  | Right(value) =>
+    let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1)) in
+    Right(Pair(value, rest))
+  | Left(e) =>
+    Left(Parse-Error(e))
+  }
+}
+
+inline _from-system<a>(v: system(a)): either(error, a) {
+  match v {
+  | Right(r) =>
+    Right(r)
+  | Left(e) =>
+    Left(System-Error(e))
+  }
 }
 
 define _read-env(env-text: text): either(error, unit) {
@@ -104,12 +122,20 @@ define _read-env(env-text: text): either(error, unit) {
     let quoted on value-rest = _has-quote-at-head(value-rest) in
     if quoted {
       try Pair(value, rest) = _read-quoted-value(value-rest) in
-      let _ on key, value = set-env(key, value, True) in
+      pin value = value in
+      pin key = key in
+      let _ = set-env(key, value, True) in
       _read-env(rest)
     } else {
       let Pair(value, rest) = _read-text-while-rune(value-rest, `\n`) in
-      let _ on key, value = set-env(key, value, True) in
-      _read-env(rest)
+      pin value = value in
+      pin key = key in
+      match set-env(key, value, True) {
+      | Right(_) =>
+        _read-env(rest)
+      | Left(e) =>
+        Left(System-Error(e))
+      }
     }
   }
 }
@@ -122,7 +148,7 @@ define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
   Right(Unit)
 }
 
-define _from-system<a>(x: system(a)): ?a {
+define _from-system-to-option<a>(x: system(a)): ?a {
   match x {
   | Left(_) =>
     Left(Unit)
@@ -168,7 +194,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
 }
 
 define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
-  try items = _from-system(read-directory(cursor-directory)) in
+  try items = _from-system-to-option(read-directory(cursor-directory)) in
   pin items = items in
   match _find-env-dirent(items, env-file-name) {
   | Right(dirent) =>
@@ -187,7 +213,7 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
 }
 
 define find-env-file(env-file-name: &text): ?text {
-  try cwd = _from-system(get-current-directory()) in
+  try cwd = _from-system-to-option(get-current-directory()) in
   pin cwd = cwd in
   _find-env-file(cwd, env-file-name)
 }
@@ -195,5 +221,5 @@ define find-env-file(env-file-name: &text): ?text {
 define find-and-load-env-file(env-file-name: &text): ?unit {
   try env-file = find-env-file(env-file-name) in
   pin env-file = env-file in
-  _from-system(load-env-file(env-file, 1024))
+  _from-system-to-option(load-env-file(env-file, 1024))
 }
