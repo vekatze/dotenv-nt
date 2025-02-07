@@ -1,10 +1,10 @@
 import {
   core.environment {set-env},
-  core.errno {errno, system},
   core.file {close, open},
   core.file.flag {for-r},
   core.file.mode {default-file-mode},
   core.rune,
+  core.system {system, system-error},
   core.text {
     _drop,
     _get-rune,
@@ -85,7 +85,7 @@ inline _read-text-while-rune(haystack: text, needle: rune): pair(text, text) {
 
 data error {
 | Parse-Error(core.text.parse.error)
-| System-Error(errno)
+| System-Error(system-error)
 }
 
 define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
