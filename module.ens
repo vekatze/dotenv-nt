@@ -7,21 +7,18 @@
       ],
     },
   },
-  prefix {
-    Scene "this.scene",
-  },
   dependency {
     core {
-      digest "8-TPdZp1-CwYeGturnDL2IS_GUWPHiRvIRYgNuJqD6w",
+      digest "TIYhEvNvLjw6bcUjGYbiOzcVQKbeE70Y4sMNT6L7sCs",
       mirror [
-        "https://github.com/vekatze/neut-core/raw/main/archive/0-50-48.tar.zst",
+        "https://github.com/vekatze/neut-core/raw/main/archive/0-51-2.tar.zst",
       ],
       enable-preset true,
     },
     path {
-      digest "-qJUgJ7VR5egk5UHZjogfWuNqb2zNjGSFxyQfTeY9W4",
+      digest "kInyN4soLAHzfVhkhEVRKmPH-0IcZkV1WzvbwCYKpis",
       mirror [
-        "https://github.com/vekatze/path-nt/raw/main/archive/0-1-24.tar.zst",
+        "https://github.com/vekatze/path-nt/raw/main/archive/0-1-25.tar.zst",
       ],
     },
   },
