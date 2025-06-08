@@ -1,17 +1,20 @@
 import {
   core.environment {get-env},
+  core.text.io {print-line},
   this.scene {find-and-load-env-file},
 }
 
 define try-dotenv(): ?unit {
-  try _ = find-and-load-env-file(".env") in
-  try value = get-env("BUZ") in
-  printf("result: {}\n", [value]);
+  try _ = find-and-load-env-file(".env");
+  try value = get-env("BUZ");
+  pin value = value;
+  print("result: ");
+  print-line(value);
   Right(Unit)
 }
 
 define zen(): unit {
-  let _ = try-dotenv() in
+  let _ = try-dotenv();
   Unit
 }
 

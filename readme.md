@@ -31,9 +31,11 @@ import {
 }
 
 define try-dotenv(): ?unit {
-  try _ = find-and-load-env-file(".env") in
-  try value = get-env("FOO") in
-  printf("result: {}\n", [value]);
+  try _ = find-and-load-env-file(".env");
+  try value = get-env("FOO");
+  pin value = value;
+  print("result: ");
+  print-line(value);
   Right(Unit)
 }
 ```

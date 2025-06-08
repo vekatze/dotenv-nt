@@ -23,27 +23,26 @@ import {
 }
 
 define _find-quote-index(t: &text): int {
-  let len = text-byte-length(t) in
+  let len = text-byte-length(t);
   let f =
     define self(byte-index: int, escaping: bool): int {
       if ge-int(byte-index, len) {
         -1
       } else {
-        let ch = _get-rune(t, byte-index) in
+        let ch = _get-rune(t, byte-index);
         if and(eq-rune(ch, `"`), not(escaping)) {
           byte-index
         } else {
-          let char-len = core.rune.size(ch) in
+          let char-len = core.rune.size(ch);
           self(add-int(byte-index, char-len), and(eq-rune(ch, `\\`), not(escaping)))
         }
       }
-    }
-  in
+    };
   f(0, False)
 }
 
 define _has-rune-at-head(t: &text, ch: rune): bool {
-  let head-rune = _get-rune(t, 0) in
+  let head-rune = _get-rune(t, 0);
   eq-rune(head-rune, ch)
 }
 
@@ -51,15 +50,13 @@ define _skip-spaces(t: text): text {
   let t =
     drop-while(t, function (ch) {
       or(eq-rune(ch, ` `), eq-rune(ch, `\n`))
-    })
-  in
-  let found-sharp on t = _has-rune-at-head(t, `#`) in
+    });
+  let found-sharp on t = _has-rune-at-head(t, `#`);
   if found-sharp {
     let t =
       drop-while(_drop(t, 1), function (ch) {
         ne-rune(ch, `\n`)
-      })
-    in
+      });
     _skip-spaces(_drop(t, 1))
   } else {
     t
@@ -77,9 +74,9 @@ define _take-while-rune(t: &text, ch: rune): text {
 }
 
 inline _read-text-while-rune(haystack: text, needle: rune): pair(text, text) {
-  let fragment on haystack = _take-while-rune(haystack, needle) in
-  let fragment-length on fragment = text-byte-length(fragment) in
-  let rest = _drop(haystack, add-int(fragment-length, 1)) in
+  let fragment on haystack = _take-while-rune(haystack, needle);
+  let fragment-length on fragment = text-byte-length(fragment);
+  let rest = _drop(haystack, add-int(fragment-length, 1));
   Pair(fragment, rest)
 }
 
@@ -89,14 +86,14 @@ data error {
 }
 
 define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
-  let quoted-value-rest = _drop(value-rest, 1) in
-  let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest) in
-  let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index) in
-  pin quoted-value = quoted-value in
-  let quoted-value-length = text-byte-length(quoted-value) in
+  let quoted-value-rest = _drop(value-rest, 1);
+  let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest);
+  let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index);
+  pin quoted-value = quoted-value;
+  let quoted-value-length = text-byte-length(quoted-value);
   match parse-text(quoted-value) {
   | Right(value) =>
-    let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1)) in
+    let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1));
     Right(Pair(value, rest))
   | Left(e) =>
     Left(Parse-Error(e))
@@ -113,23 +110,23 @@ inline _from-system<a>(v: system(a)): either(error, a) {
 }
 
 define _read-env(env-text: text): either(error, unit) {
-  let env-text = _skip-spaces(env-text) in
-  let should-finish on env-text = is-empty(env-text) in
+  let env-text = _skip-spaces(env-text);
+  let should-finish on env-text = is-empty(env-text);
   if should-finish {
     Right(Unit)
   } else {
-    let Pair(key, value-rest) = _read-text-while-rune(env-text, `=`) in
-    let quoted on value-rest = _has-quote-at-head(value-rest) in
+    let Pair(key, value-rest) = _read-text-while-rune(env-text, `=`);
+    let quoted on value-rest = _has-quote-at-head(value-rest);
     if quoted {
-      try Pair(value, rest) = _read-quoted-value(value-rest) in
-      pin value = value in
-      pin key = key in
-      let _ = set-env(key, value, True) in
+      try Pair(value, rest) = _read-quoted-value(value-rest);
+      pin value = value;
+      pin key = key;
+      let _ = set-env(key, value, True);
       _read-env(rest)
     } else {
-      let Pair(value, rest) = _read-text-while-rune(value-rest, `\n`) in
-      pin value = value in
-      pin key = key in
+      let Pair(value, rest) = _read-text-while-rune(value-rest, `\n`);
+      pin value = value;
+      pin key = key;
       match set-env(key, value, True) {
       | Right(_) =>
         _read-env(rest)
@@ -141,10 +138,10 @@ define _read-env(env-text: text): either(error, unit) {
 }
 
 define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
-  try file = open(path, for-r, default-file-mode) in
-  try content = read(file, initial-buffer-size) in
-  try _ = close(file) in
-  let _ = _read-env(content) in
+  try file = open(path, for-r, default-file-mode);
+  try content = read(file, initial-buffer-size);
+  try _ = close(file);
+  let _ = _read-env(content);
   Right(Unit)
 }
 
@@ -168,7 +165,7 @@ define _dtype-is-reg(d: &dtype): bool {
 
 define _dirent-is-reg(x: &dirent): bool {
   case x {
-  | Dirent of {kind = DT_REG} =>
+  | Dirent of {kind := DT_REG} =>
     True
   | _ =>
     False
@@ -180,9 +177,9 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
   | Nil =>
     none
   | Cons(dirent, rest) =>
-    tie Dirent of {kind, name} = dirent in
-    let b1 = _dtype-is-reg(kind) in
-    let b2 = eq-text(name, env-file-name) in
+    tie Dirent of {kind, name} = dirent;
+    let b1 = _dtype-is-reg(kind);
+    let b2 = eq-text(name, env-file-name);
     if and(b1, b2) {
       Right(dirent)
     } else {
@@ -194,16 +191,16 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
 }
 
 define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
-  try items = _from-system-to-option(read-directory(cursor-directory)) in
-  pin items = items in
+  try items = _from-system-to-option(read-directory(cursor-directory));
+  pin items = items;
   match _find-env-dirent(items, env-file-name) {
   | Right(dirent) =>
-    tie Dirent of {name} = dirent in
-    let env-file-path = path.path.append(cursor-directory, name) in
+    tie Dirent of {name} = dirent;
+    let env-file-path = path.path.append(cursor-directory, name);
     Right(env-file-path)
   | Left(_) =>
-    pin next-cursor = drop-last(cursor-directory) in
-    let should-finish = eq-text(next-cursor, cursor-directory) in
+    pin next-cursor = drop-last(cursor-directory);
+    let should-finish = eq-text(next-cursor, cursor-directory);
     if should-finish {
       none
     } else {
@@ -213,13 +210,13 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
 }
 
 define find-env-file(env-file-name: &text): ?text {
-  try cwd = _from-system-to-option(get-current-directory()) in
-  pin cwd = cwd in
+  try cwd = _from-system-to-option(get-current-directory());
+  pin cwd = cwd;
   _find-env-file(cwd, env-file-name)
 }
 
 define find-and-load-env-file(env-file-name: &text): ?unit {
-  try env-file = find-env-file(env-file-name) in
-  pin env-file = env-file in
+  try env-file = find-env-file(env-file-name);
+  pin env-file = env-file;
   _from-system-to-option(load-env-file(env-file, 1024))
 }
