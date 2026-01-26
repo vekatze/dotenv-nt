@@ -165,7 +165,7 @@ define _dtype-is-reg(d: &dtype): bool {
 
 define _dirent-is-reg(x: &dirent): bool {
   case x {
-  | Dirent of {kind := DT_REG} =>
+  | Dirent{kind := DT_REG} =>
     True
   | _ =>
     False
@@ -177,7 +177,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
   | Nil =>
     none
   | Cons(dirent, rest) =>
-    tie Dirent of {kind, name} = dirent;
+    tie Dirent{kind, name} = dirent;
     let b1 = _dtype-is-reg(kind);
     let b2 = eq-text(name, env-file-name);
     if and(b1, b2) {
@@ -195,7 +195,7 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
   pin items = items;
   match _find-env-dirent(items, env-file-name) {
   | Right(dirent) =>
-    tie Dirent of {name} = dirent;
+    tie Dirent{name} = dirent;
     let env-file-path = path.path.append(cursor-directory, name);
     Right(env-file-path)
   | Left(_) =>
