@@ -22,10 +22,10 @@ import {
   path.path {drop-last},
 }
 
-define _find-quote-index(t: &text): int {
+define _find-quote-index(t: &text) -> int {
   let len = text-byte-length(t);
   let f =
-    define self(byte-index: int, escaping: bool): int {
+    define self(byte-index: int, escaping: bool) -> int {
       if ge-int(byte-index, len) {
         -1
       } else {
@@ -41,12 +41,12 @@ define _find-quote-index(t: &text): int {
   f(0, False)
 }
 
-define _has-rune-at-head(t: &text, ch: rune): bool {
+define _has-rune-at-head(t: &text, ch: rune) -> bool {
   let head-rune = _get-rune(t, 0);
   eq-rune(head-rune, ch)
 }
 
-define _skip-spaces(t: text): text {
+define _skip-spaces(t: text) -> text {
   let t =
     drop-while(t, function (ch) {
       or(eq-rune(ch, ` `), eq-rune(ch, `\n`))
@@ -63,17 +63,17 @@ define _skip-spaces(t: text): text {
   }
 }
 
-define _has-quote-at-head(t: &text): bool {
+define _has-quote-at-head(t: &text) -> bool {
   _has-rune-at-head(t, `"`)
 }
 
-define _take-while-rune(t: &text, ch: rune): text {
+define _take-while-rune(t: &text, ch: rune) -> text {
   take-while-N(t, function (r) {
     ne-rune(r, ch)
   })
 }
 
-inline _read-text-while-rune(haystack: text, needle: rune): pair(text, text) {
+inline _read-text-while-rune(haystack: text, needle: rune) -> pair(text, text) {
   let fragment on haystack = _take-while-rune(haystack, needle);
   let fragment-length on fragment = text-byte-length(fragment);
   let rest = _drop(haystack, add-int(fragment-length, 1));
@@ -85,7 +85,7 @@ data error {
 | System-Error(system-error)
 }
 
-define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
+define _read-quoted-value(value-rest: text) -> either(error, pair(text, text)) {
   let quoted-value-rest = _drop(value-rest, 1);
   let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest);
   let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index);
@@ -100,7 +100,7 @@ define _read-quoted-value(value-rest: text): either(error, pair(text, text)) {
   }
 }
 
-inline _from-system<a>(v: system(a)): either(error, a) {
+inline _from-system<a>(v: system(a)) -> either(error, a) {
   match v {
   | Right(r) =>
     Right(r)
@@ -109,7 +109,7 @@ inline _from-system<a>(v: system(a)): either(error, a) {
   }
 }
 
-define _read-env(env-text: text): either(error, unit) {
+define _read-env(env-text: text) -> either(error, unit) {
   let env-text = _skip-spaces(env-text);
   let should-finish on env-text = is-empty(env-text);
   if should-finish {
@@ -137,7 +137,7 @@ define _read-env(env-text: text): either(error, unit) {
   }
 }
 
-define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
+define load-env-file(path: &text, initial-buffer-size: int) -> system(unit) {
   try file = open(path, for-r, default-file-mode);
   try content = read(file, initial-buffer-size);
   try _ = close(file);
@@ -145,7 +145,7 @@ define load-env-file(path: &text, initial-buffer-size: int): system(unit) {
   Right(Unit)
 }
 
-define _from-system-to-option<a>(x: system(a)): ?a {
+define _from-system-to-option<a>(x: system(a)) -> ?a {
   match x {
   | Left(_) =>
     Left(Unit)
@@ -154,7 +154,7 @@ define _from-system-to-option<a>(x: system(a)): ?a {
   }
 }
 
-define _dtype-is-reg(d: &dtype): bool {
+define _dtype-is-reg(d: &dtype) -> bool {
   case d {
   | DT_REG =>
     True
@@ -163,7 +163,7 @@ define _dtype-is-reg(d: &dtype): bool {
   }
 }
 
-define _dirent-is-reg(x: &dirent): bool {
+define _dirent-is-reg(x: &dirent) -> bool {
   case x {
   | Dirent{kind := DT_REG} =>
     True
@@ -172,7 +172,7 @@ define _dirent-is-reg(x: &dirent): bool {
   }
 }
 
-define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
+define _find-env-dirent(xs: &list(dirent), env-file-name: &text) -> ?&dirent {
   case xs {
   | Nil =>
     none
@@ -190,7 +190,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text): ?&dirent {
   }
 }
 
-define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
+define _find-env-file(cursor-directory: &text, env-file-name: &text) -> ?text {
   try items = _from-system-to-option(read-directory(cursor-directory));
   pin items = items;
   match _find-env-dirent(items, env-file-name) {
@@ -209,13 +209,13 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text): ?text {
   }
 }
 
-define find-env-file(env-file-name: &text): ?text {
+define find-env-file(env-file-name: &text) -> ?text {
   try cwd = _from-system-to-option(get-current-directory());
   pin cwd = cwd;
   _find-env-file(cwd, env-file-name)
 }
 
-define find-and-load-env-file(env-file-name: &text): ?unit {
+define find-and-load-env-file(env-file-name: &text) -> ?unit {
   try env-file = find-env-file(env-file-name);
   pin env-file = env-file;
   _from-system-to-option(load-env-file(env-file, 1024))
