@@ -48,13 +48,13 @@ define _has-rune-at-head(t: &text, ch: rune) -> bool {
 
 define _skip-spaces(t: text) -> text {
   let t =
-    drop-while(t, function (ch) {
+    drop-while(t, (ch) => {
       or(eq-rune(ch, ` `), eq-rune(ch, `\n`))
     });
   let found-sharp on t = _has-rune-at-head(t, `#`);
   if found-sharp {
     let t =
-      drop-while(_drop(t, 1), function (ch) {
+      drop-while(_drop(t, 1), (ch) => {
         ne-rune(ch, `\n`)
       });
     _skip-spaces(_drop(t, 1))
@@ -68,7 +68,7 @@ define _has-quote-at-head(t: &text) -> bool {
 }
 
 define _take-while-rune(t: &text, ch: rune) -> text {
-  take-while-N(t, function (r) {
+  take-while-N(t, (r) => {
     ne-rune(r, ch)
   })
 }
@@ -165,7 +165,7 @@ define _dtype-is-reg(d: &dtype) -> bool {
 
 define _dirent-is-reg(x: &dirent) -> bool {
   case x {
-  | Dirent{kind := DT_REG} =>
+  | Dirent {kind := DT_REG} =>
     True
   | _ =>
     False
@@ -177,7 +177,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &text) -> ?&dirent {
   | Nil =>
     none
   | Cons(dirent, rest) =>
-    tie Dirent{kind, name} = dirent;
+    tie Dirent {kind, name} = dirent;
     let b1 = _dtype-is-reg(kind);
     let b2 = eq-text(name, env-file-name);
     if and(b1, b2) {
@@ -195,7 +195,7 @@ define _find-env-file(cursor-directory: &text, env-file-name: &text) -> ?text {
   pin items = items;
   match _find-env-dirent(items, env-file-name) {
   | Right(dirent) =>
-    tie Dirent{name} = dirent;
+    tie Dirent {name} = dirent;
     let env-file-path = path.path.append(cursor-directory, name);
     Right(env-file-path)
   | Left(_) =>
