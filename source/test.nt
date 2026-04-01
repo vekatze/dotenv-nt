@@ -1,6 +1,6 @@
 import {
   core.environment {get-env},
-  core.text.io {print-line},
+  core.string.io {print-line},
   this.scene {find-and-load-env-file},
 }
 
