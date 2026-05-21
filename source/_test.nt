@@ -1,7 +1,6 @@
 import {
   core.environment {get-env},
-  core.string.io {print-line},
-  this.scene {find-and-load-env-file},
+  this.dotenv {find-and-load-env-file},
 }
 
 define try-dotenv() -> ?unit {

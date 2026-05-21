@@ -1,17 +1,14 @@
 import {
-  core.environment {set-env},
-  core.file {close, open},
-  core.file.flag {for-r},
-  core.file.mode {default-file-mode},
-  core.rune,
+  core.environment.unsafe {set-env},
+  core.file.access-mode {Read},
+  core.file.descriptor {close, open},
+  core.list {reverse},
   core.string {
-    _drop,
-    _get-rune,
-    _take-N,
     drop-while,
     is-empty,
-    string-byte-length,
+    pack,
     take-while-N,
+    uncons,
   },
   core.string.io {read},
   core.string.parse {parse-string},
@@ -22,28 +19,13 @@ import {
   path.path {drop-last},
 }
 
-define _find-quote-index(t: &string) -> int {
-  let len = string-byte-length(t);
-  let f =
-    define self(byte-index: int, escaping: bool) -> int {
-      if ge-int(byte-index, len) {
-        -1
-      } else {
-        let ch = _get-rune(t, byte-index);
-        if and(eq-rune(ch, `"`), not(escaping)) {
-          byte-index
-        } else {
-          let char-len = core.rune.size(ch);
-          self(add-int(byte-index, char-len), and(eq-rune(ch, `\\`), not(escaping)))
-        }
-      }
-    };
-  f(0, False)
-}
-
 define _has-rune-at-head(t: &string, ch: rune) -> bool {
-  let head-rune = _get-rune(t, 0);
-  eq-rune(head-rune, ch)
+  match core.string.get-first-rune(t) {
+  | Right(head-rune) =>
+    eq-rune(head-rune, ch)
+  | Left(_) =>
+    False
+  }
 }
 
 define _skip-spaces(t: string) -> string {
@@ -54,10 +36,10 @@ define _skip-spaces(t: string) -> string {
   let found-sharp on t = _has-rune-at-head(t, `#`);
   if found-sharp {
     let t =
-      drop-while(_drop(t, 1), (ch) => {
+      drop-while(core.string.drop(t, 1), (ch) => {
         ne-rune(ch, `\n`)
       });
-    _skip-spaces(_drop(t, 1))
+    _skip-spaces(core.string.drop(t, 1))
   } else {
     t
   }
@@ -75,8 +57,8 @@ define _take-while-rune(t: &string, ch: rune) -> string {
 
 inline _read-string-while-rune(haystack: string, needle: rune) -> pair(string, string) {
   let fragment on haystack = _take-while-rune(haystack, needle);
-  let fragment-length on fragment = string-byte-length(fragment);
-  let rest = _drop(haystack, add-int(fragment-length, 1));
+  let fragment-length on fragment = core.string.length(fragment);
+  let rest = core.string.drop(haystack, add-int(fragment-length, 1));
   Pair(fragment, rest)
 }
 
@@ -85,19 +67,33 @@ data error {
 | System-Error(system-error)
 }
 
-define _read-quoted-value(value-rest: string) -> either(error, pair(string, string)) {
-  let quoted-value-rest = _drop(value-rest, 1);
-  let quote-index on quoted-value-rest = _find-quote-index(quoted-value-rest);
-  let quoted-value on quoted-value-rest = _take-N(quoted-value-rest, quote-index);
-  pin quoted-value = quoted-value;
-  let quoted-value-length = string-byte-length(quoted-value);
-  match parse-string(quoted-value) {
-  | Right(value) =>
-    let rest = _drop(quoted-value-rest, add-int(quoted-value-length, 1));
-    Right(Pair(value, rest))
-  | Left(e) =>
-    Left(Parse-Error(e))
+define _read-quoted-value-loop(
+  rest: string,
+  escaping: bool,
+  acc: list(rune),
+) -> either(error, pair(string, string)) {
+  match uncons(rest) {
+  | Left(_) =>
+    Left(Parse-Error(core.string.parse.Parse-Error(*"Unexpected end of quoted value")))
+  | Right(Pair(ch, rest)) =>
+    if and(eq-rune(ch, `"`), not(escaping)) {
+      pin acc = reverse(acc);
+      pin quoted-value = pack(acc);
+      match parse-string(quoted-value) {
+      | Right(value) =>
+        Right(Pair(value, rest))
+      | Left(e) =>
+        Left(Parse-Error(e))
+      }
+    } else {
+      let escaping = and(eq-rune(ch, `\\`), not(escaping));
+      _read-quoted-value-loop(rest, escaping, Cons(ch, acc))
+    }
   }
+}
+
+define _read-quoted-value(value-rest: string) -> either(error, pair(string, string)) {
+  _read-quoted-value-loop(core.string.drop(value-rest, 1), False, Nil)
 }
 
 inline _from-system<a>(v: system(a)) -> either(error, a) {
@@ -138,7 +134,7 @@ define _read-env(env-string: string) -> either(error, unit) {
 }
 
 define load-env-file(path: &string, initial-buffer-size: int) -> system(unit) {
-  try file = open(path, for-r, default-file-mode);
+  try file = open(path, Read)[create := none];
   try content = read(file, initial-buffer-size);
   try _ = close(file);
   let _ = _read-env(content);
