@@ -5,7 +5,7 @@
 ## Installation
 
 ```sh
-neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0-1-40.tar.zst
+neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0-1-41.tar.zst
 ```
 
 ## Types
@@ -29,7 +29,7 @@ define load-env-file(path: &string, initial-buffer-size: int) -> system(unit)
 import {
   core.environment {get-env},
   core.string.io {print-line},
-  this.scene {find-and-load-env-file},
+  this.dotenv {find-and-load-env-file},
 }
 
 define try-dotenv() -> ?unit {
