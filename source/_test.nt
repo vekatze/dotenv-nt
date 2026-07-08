@@ -1,6 +1,6 @@
 import {
-  core.environment {get-env},
-  this.dotenv {find-and-load-env-file},
+  core::environment {get-env},
+  dotenv {find-and-load-env-file},
 }
 
 define try-dotenv() -> ?unit {

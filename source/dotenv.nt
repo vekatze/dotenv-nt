@@ -1,26 +1,26 @@
 import {
-  core.environment.unsafe {set-env},
-  core.file.access-mode {Read},
-  core.file.descriptor {close, open},
-  core.list {reverse},
-  core.string {
+  core::environment.unsafe {set-env},
+  core::file.access-mode {Read},
+  core::file.descriptor {close, open},
+  core::list {reverse},
+  core::path {drop-last},
+  core::path.entity.dirent {Dirent, dirent},
+  core::path.entity.dtype {DT_REG, dtype},
+  core::path.io {get-current-directory, read-directory},
+  core::string {
     drop-while,
     is-empty,
     pack,
     take-while-N,
     uncons,
   },
-  core.string.io {read},
-  core.string.parse {parse-string},
-  core.system {system, system-error},
-  path.entity.dirent {Dirent, dirent},
-  path.entity.dtype {DT_REG, dtype},
-  path.io {get-current-directory, read-directory},
-  path.path {drop-last},
+  core::string.io {read},
+  core::string.parse {parse-string},
+  core::system {system, system-error},
 }
 
 define _has-rune-at-head(t: &string, ch: rune) -> bool {
-  match core.string.get-first-rune(t) {
+  match core::string.get-first-rune(t) {
   | Right(head-rune) =>
     eq-rune(head-rune, ch)
   | Left(_) =>
@@ -31,15 +31,15 @@ define _has-rune-at-head(t: &string, ch: rune) -> bool {
 define _skip-spaces(t: string) -> string {
   let t =
     drop-while(t, (ch) => {
-      or(eq-rune(ch, ` `), eq-rune(ch, `\n`))
+      or::(eq-rune(ch, ` `), eq-rune(ch, `\n`))
     });
   let found-sharp on t = _has-rune-at-head(t, `#`);
   if found-sharp {
     let t =
-      drop-while(core.string.drop(t, 1), (ch) => {
+      drop-while(core::string.drop(t, 1), (ch) => {
         ne-rune(ch, `\n`)
       });
-    _skip-spaces(core.string.drop(t, 1))
+    _skip-spaces(core::string.drop(t, 1))
   } else {
     t
   }
@@ -57,13 +57,13 @@ define _take-while-rune(t: &string, ch: rune) -> string {
 
 inline _read-string-while-rune(haystack: string, needle: rune) -> pair(string, string) {
   let fragment on haystack = _take-while-rune(haystack, needle);
-  let fragment-length on fragment = core.string.length(fragment);
-  let rest = core.string.drop(haystack, add-int(fragment-length, 1));
+  let fragment-length on fragment = core::string.length(fragment);
+  let rest = core::string.drop(haystack, add-int(fragment-length, 1));
   Pair(fragment, rest)
 }
 
 data error {
-| Parse-Error(core.string.parse.error)
+| Parse-Error(core::string.parse.error)
 | System-Error(system-error)
 }
 
@@ -74,9 +74,9 @@ define _read-quoted-value-loop(
 ) -> either(error, pair(string, string)) {
   match uncons(rest) {
   | Left(_) =>
-    Left(Parse-Error(core.string.parse.Parse-Error(*"Unexpected end of quoted value")))
+    Left(Parse-Error(core::string.parse.Parse-Error(*"Unexpected end of quoted value")))
   | Right(Pair(ch, rest)) =>
-    if and(eq-rune(ch, `"`), not(escaping)) {
+    if and::(eq-rune(ch, `"`), not(escaping)) {
       pin acc = reverse(acc);
       pin quoted-value = pack(acc);
       match parse-string(quoted-value) {
@@ -86,23 +86,14 @@ define _read-quoted-value-loop(
         Left(Parse-Error(e))
       }
     } else {
-      let escaping = and(eq-rune(ch, `\\`), not(escaping));
+      let escaping = and::(eq-rune(ch, `\\`), not(escaping));
       _read-quoted-value-loop(rest, escaping, Cons(ch, acc))
     }
   }
 }
 
 define _read-quoted-value(value-rest: string) -> either(error, pair(string, string)) {
-  _read-quoted-value-loop(core.string.drop(value-rest, 1), False, Nil)
-}
-
-inline _from-system<a>(v: system(a)) -> either(error, a) {
-  match v {
-  | Right(r) =>
-    Right(r)
-  | Left(e) =>
-    Left(System-Error(e))
-  }
+  _read-quoted-value-loop(core::string.drop(value-rest, 1), False, Nil)
 }
 
 define _read-env(env-string: string) -> either(error, unit) {
@@ -159,15 +150,6 @@ define _dtype-is-reg(d: &dtype) -> bool {
   }
 }
 
-define _dirent-is-reg(x: &dirent) -> bool {
-  case x {
-  | Dirent{kind := DT_REG} =>
-    True
-  | _ =>
-    False
-  }
-}
-
 define _find-env-dirent(xs: &list(dirent), env-file-name: &string) -> ?&dirent {
   case xs {
   | Nil =>
@@ -176,7 +158,7 @@ define _find-env-dirent(xs: &list(dirent), env-file-name: &string) -> ?&dirent {
     tie Dirent{kind, name} = dirent;
     let b1 = _dtype-is-reg(kind);
     let b2 = eq-string(name, env-file-name);
-    if and(b1, b2) {
+    if and::(b1, b2) {
       Right(dirent)
     } else {
       _find-env-dirent(rest, env-file-name)
@@ -192,7 +174,7 @@ define _find-env-file(cursor-directory: &string, env-file-name: &string) -> ?str
   match _find-env-dirent(items, env-file-name) {
   | Right(dirent) =>
     tie Dirent{name} = dirent;
-    let env-file-path = path.path.append(cursor-directory, name);
+    let env-file-path = core::path.append(cursor-directory, name);
     Right(env-file-path)
   | Left(_) =>
     pin next-cursor = drop-last(cursor-directory);
