@@ -1,11 +1,11 @@
 # dotenv
 
-`dotenv` is a [Neut](https://vekatze.github.io/neut) library to find env files and load them.
+`dotenv` is a [Neut](https://vekatze.github.io/neut) library that finds and loads env files.
 
 ## Installation
 
 ```sh
-neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0-1-41.tar.zst
+neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0.2.0.tar.zst
 ```
 
 ## Types
@@ -27,9 +27,9 @@ define load-env-file(path: &string, initial-buffer-size: int) -> system(unit)
 
 ```neut
 import {
-  core.environment {get-env},
-  core.string.io {print-line},
-  this.dotenv {find-and-load-env-file},
+  core::environment {get-env},
+  core::string.io {print-line},
+  this::dotenv {find-and-load-env-file},
 }
 
 define try-dotenv() -> ?unit {
