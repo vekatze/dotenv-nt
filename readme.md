@@ -5,7 +5,7 @@
 ## Installation
 
 ```sh
-neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0.2.0.tar.zst
+neut get dotenv https://github.com/vekatze/dotenv-nt/raw/main/archive/0.2.1.tar.zst
 ```
 
 ## Types
@@ -34,7 +34,7 @@ import {
 
 define try-dotenv() -> ?unit {
   try _ = find-and-load-env-file(".env");
-  try value = get-env("FOO");
+  try value = get-env@("FOO");
   pin value = value;
   print("result: ");
   print-line(value);
